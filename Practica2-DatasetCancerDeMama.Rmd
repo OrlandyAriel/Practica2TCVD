@@ -1,0 +1,205 @@
+---
+title: "Visualización HTML código
+output: html_notebook
+---
+
+
+
+```{r message=FALSE, warning=FALSE}
+# Carga dataset
+datosCancer<- read_csv("C:/Users/orlan/OneDrive/UOC/2018-2019/1ER_cuatrimestre/T_ciclo_de_vida_datos/PRACTICA2/breast-cancer-wisconsin.data.csv")
+# Se cambia el nómbre a los atributos para facilitar su lectura en los distintos gráficos
+names(datosCancer)<-c ("v0","v1","v2","v3","v4","v5","v6","v7","v8","v9","v10")
+summary(datosCancer)
+```
+
+
+```{r}
+head(datosCancer)
+```
+
+```{r}
+# Limpieza de los datos
+# ver los nulos, vacios y cero (en caso que no sea normal)
+# Estadísticas de valores nulos, vacios y ceros
+colSums(is.na(datosCancer))
+```
+
+```{r}
+colSums(datosCancer== "")
+
+```
+
+```{r}
+table(datosCancer$v10)
+```
+
+```{r}
+# Función para normalizar una columna de un dataset
+normalizacion <- function(x){
+  return ((x-min(x))/(max(x)-min(x)))
+}
+```
+
+```{r}
+# en el proceso se pierden formato por tanto se realizan unas conversiones para poder mantener el formato de las celdas a numeric
+datos <- as.data.frame(lapply(datos,normalizacion))
+datos<-format(datos, digits=3, nsmall =2)
+
+datos <- as.data.frame(sapply(datos,as.numeric))
+
+```
+
+```{r}
+# normalidad en los datos
+par(mfrow = c(1, 2))
+hist(datos$v2, breaks = 20, main = "", xlab = "Cell size uniformity ", border = "darkred")
+hist(datos$v3, breaks = 20, main = "", xlab = "Cell shape uniformity",border = "blue")
+```
+
+```{r}
+# Correlación de Pearson.
+cor(x = datos, method = "pearson")
+```
+
+```{r message=FALSE, warning=FALSE, error=FALSE}
+# normalidad Geary
+normlGeary <- function(x){
+  for (i in 1:ncol(x)) {
+    if(0.05 < geary.norm.test(x[,i],nrepl=2000)$p.value){
+      cat(names(x[i]))
+      cat(" Es normal\n")
+    }
+    else{cat(names(x[i]))
+      cat(" NO Es normal\n")
+      }
+  }
+}
+
+```
+
+```{r}
+normlGeary(benigno[-10])
+```
+```{r}
+benigno2 <- benigno[benigno$v2 < 0.2 & benigno$v3 <0.2,]
+maligno2 <- maligno[maligno$v2 > 0.5 & maligno$v3 > 0.5,]
+```
+
+```{r}
+normlGeary(maligno[-10])
+```
+
+```{r}
+# puedo ver gráficamente y al menos visualmente no parecen tener correlación lineal 
+multi.hist(x = datos, dcol = c("blue", "red"), dlty = c("dotted", "solid"),  main = "")
+```
+
+```{r}
+corrplot(corr = cor(x = datos, method = "pearson"), method = "number")
+```
+
+```{r}
+# matriz decorrelación
+
+cor(x = datos, method = "pearson")
+# puedo ver gráficamente y al menos visualmente no parecen tener correlación lineal 
+multi.hist(x = datos, dcol = c("blue", "red"), dlty = c("dotted", "solid"),  main = "")
+
+#ver la significancia de la correlación entre las variables v2 y v10 que parecen ser las que mas tienen entre ellas
+cor.test(x = datos$v2, y = datos$v10, alternative = "two.sided", conf.level = 0.95, method = "pearson")
+
+#ver la significancia de la correlación entre las variables v3 y v10 que  tambien es alta
+cor.test(x = datos$v3, y = datos$v10, alternative = "two.sided", conf.level = 0.95, method = "pearson")
+
+#ver la significancia de la correlación entre las variables v7 y v10 que  tambien es alta, aunque la más baja de entre de v2,v3 y v7
+cor.test(x = datos$v7, y = datos$v10, alternative = "two.sided", conf.level = 0.95, method = "pearson")
+```
+```{r}
+# Test de shapiro
+shapiro.test(datos$v2)
+shapiro.test(datos$v3)
+```
+
+```{r}
+#Coeficiente de correlación
+lm(formula = v2 ~ v10, data = datos) 
+#Cálculo del modelo de regresión lineal simple 
+cor.test(x = datos$v2, y = datos$v10, method = "spearman")
+cor.test(x = datos$v2, y = datos$v10, method = "pearson")
+# en ambos casos los coeficientes de correlación son significativos.
+# correlación
+modelo_lineal <- lm(v2 ~ v10, datos)
+# lm() devuelve el valor de la variable y para x=0 (intersección) junto 
+# con la pendiente de la recta.
+# Para ver la información del modelo se requiere summary().
+summary(modelo_lineal)
+
+#intervalos de confianza 
+confint(modelo_lineal)
+```
+
+```{r}
+## Resultados matriz filtro por v2 y v3
+porctajeBenigno<- (length(benigno2$v1) /length(benigno$v1)) * 100
+porctajeMaligno<- (length(maligno2$v1) /length(maligno$v1)) * 100
+
+matrizFiltroV2V3 <- matrix(nc = 2, nr = 2)
+matrizFiltroV2V3[1, 1] <- "Porcentaje benigno con v2 y v3 < 0.2 "
+matrizFiltroV2V3[2, 1] <- "Porcentaje Maligno con v2 y v3 < 0.2"
+matrizFiltroV2V3[1, 2] <- porctajeBenigno
+matrizFiltroV2V3[2, 2] <- porctajeMaligno
+print(matrizFiltroV2V3)
+```
+
+```{r}
+# Separación de los datos
+datosParaKNN <-datos
+# Asigno etiquetas para que se muestren mejor los datos
+datosParaKNN$v10[datosParaKNN$v10 == 0] <- "Benigno"
+datosParaKNN$v10[datosParaKNN$v10 == 1] <- "Maligno"
+
+#ver cantidad de casos de cada tipo de cancer
+table(datosParaKNN$v10)
+
+# ver en porcentaje
+round(prop.table(table(datos$v10))* 100, digits = 1 )
+```
+
+```{r}
+# preparación datos para entrenamiento y pruebas
+# se hará el siguiente reparto 70% entrenamientos 30% pruebas
+particion <- sample(2, nrow(datosParaKNN), replace =  TRUE, prob = c(0.7, 0.3))
+
+trainDatos <- datosParaKNN[particion == 1,]
+testDatos <- datosParaKNN[particion == 2,]
+# guardo las los datos separados sin la clase
+trainDatosNoTag <- trainDatos[-10]
+testDatosNoTag <- testDatos[-10]
+# compruebo que los datos se han guadado como deben
+dim(trainDatos)
+dim(trainDatosNoTag)
+dim(testDatos)
+dim(testDatosNoTag)
+
+# guardo las clases separadas 
+trainDatosTag <- trainDatos$v10
+testDatosTag <- testDatos$v10
+
+# se pasa a realizar el entrenamiento
+
+testPredicion <- knn(train = trainDatosNoTag, test = testDatosNoTag, cl = trainDatosTag, k = 3, prob = TRUE)
+summary(testPredicion)
+
+
+```
+
+```{r}
+# evaluación del modelo obtenido, matriz de confusiónmatrizConfusion <-CrossTable(x = testDatosTag, y = testPredicion, prop.chisq =  FALSE)
+
+# podemos ver que de 139 casos que eran begnigno solo clasificó mal 5, lo que nos dá un 96.40% de acierto
+# en el caso del cancer maligno se clasificaron 74 de los cuales 1 se clasificó como benigno, esto nos deja 98.64 % de acierto
+# en general de 213 casos análizados 6 fueron clasiciados erroneamente, lo que nos deja 98.12% de acierto, lo que nos deja 
+# un 1.88% de error, lo cual es bastante bajo para este tipo de algoritmo, es decir los datos son muy buenos.
+```
+
