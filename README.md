@@ -22,5 +22,7 @@
 *	**Normal nucleoli:** nucléolos son pequeñas estructuras que se ven el núcleo. Por tanto, en células normales, el núcleo suele ser muy pequeño si es visible. En células cancerígenas, los nucléolos se hacen más grande.
 *	**Mitoses:** el cáncer es una enfermedad de la mitosis descontrolada.
 *	**Class:** diagnostico, 2 para benigno y 4 para maligno.
+
+
 Todos estos atributos son numéricos y van de 1 a 2 a excepción del Identificador y la clase, este último solo tiene 2 variantes.
 El tamaño del Dataset es de 698 instancias y 11 variables.
